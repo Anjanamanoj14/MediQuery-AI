@@ -15,6 +15,9 @@ st.set_page_config(
     page_icon="🏥",
     layout="wide"
 )
+# HuggingFace fix
+os.environ["STREAMLIT_SERVER_ENABLE_CORS"] = "false"
+os.environ["STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION"] = "false"
 
 # Custom CSS
 st.markdown("""

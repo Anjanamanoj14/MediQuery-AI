@@ -2,6 +2,9 @@
 
 An AI-powered medical report assistant that helps patients understand their medical reports in plain English.
 
+## 🌐 Live Demo
+👉 [Try MediQuery AI Live](https://mediquery-ai-app.streamlit.app/)
+
 ## 🎯 Problem It Solves
 Patients receive complex medical reports they cannot understand. MediQuery AI lets them upload their PDF report and ask questions in simple language — getting clear, accurate answers instantly.
 
