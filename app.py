@@ -195,6 +195,13 @@ with st.sidebar:
         st.metric("Characters", len(text))
 
     st.markdown("---")
+    st.markdown("### 🌍 Select Language")
+    language = st.selectbox(
+    "Answer language",
+    ["English", "Malayalam", "Hindi",
+     "Tamil", "Telugu", "Kannada",
+     "Bengali", "Arabic", "French"]
+    )
     st.markdown("### 💡 Try Asking:")
     questions = [
         "What is the diagnosis?",
@@ -249,15 +256,129 @@ if not st.session_state.pdf_processed:
         </div>""", unsafe_allow_html=True)
 
 else:
-    st.markdown("### 💬 Chat with Your Report")
+    # Auto Summary Section
+   st.write("---")
+col1, col2 = st.columns(2)
 
-    for message in st.session_state.messages:
+with col1:
+    if st.button("📋 Generate Report Summary", use_container_width=True):
+        with st.spinner("📋 Generating summary..."):
+            try:
+                context = "\n".join(st.session_state.chunks)
+                summary_prompt = f"""You are a helpful medical assistant.
+Summarize this medical report in {language} language in simple terms.
+Structure your summary as:
+
+👤 Patient Details:
+🏥 Main Diagnosis:
+🌡️ Vital Signs:
+💊 Prescribed Medicines:
+📋 Doctor's Advice:
+⚠️ Important Notes:
+
+Medical Report:
+{context}
+
+Provide a clear, simple summary in {language} language:"""
+
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                response = model.generate_content(summary_prompt)
+                st.session_state.summary = response.text
+
+            except Exception as e:
+                if "429" in str(e):
+                    st.warning("⏳ Please wait 30 seconds and try again!")
+                else:
+                    st.error(f"❌ Error: {str(e)}")
+
+with col2:
+    if st.button("⚠️ Check Abnormal Values", use_container_width=True):
+        with st.spinner("🔍 Checking for abnormal values..."):
+            try:
+                context = "\n".join(st.session_state.chunks)
+                abnormal_prompt = f"""You are a medical expert assistant.
+Analyze this medical report and identify in {language} language:
+
+1. ⚠️ Abnormal Values — list each abnormal finding
+2. 📊 Normal Range — what the normal range should be
+3. 🔍 What it means — simple explanation
+4. 🏥 Recommendation — what the patient should do
+
+If everything is normal, say "All values appear to be within normal range."
+
+Medical Report:
+{context}
+
+Answer in {language} language:"""
+
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                response = model.generate_content(abnormal_prompt)
+                st.session_state.abnormal = response.text
+
+            except Exception as e:
+                if "429" in str(e):
+                    st.warning("⏳ Please wait 30 seconds and try again!")
+                else:
+                    st.error(f"❌ Error: {str(e)}")
+
+# Show summary if generated
+if "summary" in st.session_state and st.session_state.summary:
+    st.write("---")
+    st.subheader("📋 Report Summary")
+    st.info(st.session_state.summary)
+
+# Show abnormal values if generated
+if "abnormal" in st.session_state and st.session_state.abnormal:
+    st.write("---")
+    st.subheader("⚠️ Abnormal Values Analysis")
+    st.warning(st.session_state.abnormal)
+# Medicine Explainer Button
+st.write("")
+if st.button("💊 Explain My Medicines", use_container_width=True):
+    with st.spinner("💊 Analyzing medicines..."):
+        try:
+            context = "\n".join(st.session_state.chunks)
+            medicine_prompt = f"""You are a helpful medical assistant.
+From this medical report, find all medicines and explain in {language} language:
+
+For each medicine provide:
+💊 Medicine Name:
+🎯 What it is for:
+📏 Dosage & Duration:
+⚠️ Common Side Effects:
+🔔 Important Precautions:
+
+Medical Report:
+{context}
+
+If no medicines found, say "No medicines found in this report."
+Answer in {language} language:"""
+
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(medicine_prompt)
+            st.session_state.medicines = response.text
+
+        except Exception as e:
+            if "429" in str(e):
+                st.warning("⏳ Please wait 30 seconds and try again!")
+            else:
+                st.error(f"❌ Error: {str(e)}")
+
+# Show medicines if generated
+if "medicines" in st.session_state and st.session_state.medicines:
+    st.write("---")
+    st.subheader("💊 Medicine Information")
+    st.info(st.session_state.medicines)
+
+st.write("---")
+st.markdown("### 💬 Chat with Your Report")
+
+for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
+question = st.chat_input(f"Ask your question in {language}...")
 
-    question = st.chat_input("Ask anything about your medical report...")
-
-    if question:
+if question:
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.write(question)
@@ -276,7 +397,14 @@ Medical Report:
 
 Patient Question: {question}
 
-Answer in simple, easy to understand language:"""
+IMPORTANT INSTRUCTIONS:
+- The question may be asked in any language
+- You must understand the question regardless of language
+- Answer strictly in {language} language only
+- Use simple, easy to understand language
+- Do not translate the medical report, only the answer
+
+Answer:"""
 
                     model = genai.GenerativeModel("gemini-2.5-flash")
                     response = model.generate_content(prompt)
